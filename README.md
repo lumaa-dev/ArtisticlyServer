@@ -11,7 +11,8 @@ Public songs are accessible by any user, while hidden songs are only accessible 
 Beforehand, you need **npm and node** on your computer or server.
 
 1. Click on the [latest release](https://github.com/lumaa-dev/ArtisticlyServer/releases/latest) like shown below:\
-[![Latest release of a GitHub repository](./README_data/latest_release.png)](https://github.com/lumaa-dev/ArtisticlyServer/releases/latest)
+[![Latest release of a GitHub repository](./README_data/latest_release.png)](https://github.com/lumaa-dev/ArtisticlyServer/releases/latest)\
+And download the *ArtisticlyServer.zip*, then unzip it.
 
 2. Edit the [`config.json` file](config.json) by putting your own access code and name. Don't forget to set `configured` to `true`!
 
