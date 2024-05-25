@@ -107,6 +107,7 @@ app.get("/music/:id", (req, res) => {
 		})[0];
 
 		if (!song) {
+			console.log(`[Artisticly] - Song with ID "${id}" does not exist.`);
 			return res
 				.status(301)
 				.json({ error: "Song is missing or does not exists" });
