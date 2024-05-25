@@ -17,3 +17,5 @@ And download the *ArtisticlyServer.zip*, then unzip it.
 2. Edit the [`config.json` file](config.json) by putting your own access code and name. Don't forget to set `configured` to `true`!
 
 3. You can now run the server by doing `npm install` then `node server.js`, et voilà!
+
+Then simply do the according settings in the [Artisticly app](https://github.com/lumaa-dev/ArtisticlyClient).
