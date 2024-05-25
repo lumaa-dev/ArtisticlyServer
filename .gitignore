@@ -6,3 +6,6 @@ config.json
 *.wav
 *.mp3
 *.m4a
+
+# exports
+ArtisticlyServer.zip
