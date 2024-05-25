@@ -2,6 +2,6 @@
 .DS_Store
 
 # available audio formats
-.wav
-.mp3
-.m4a
+*.wav
+*.mp3
+*.m4a
