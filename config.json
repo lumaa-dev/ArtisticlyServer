@@ -1,0 +1,12 @@
+{
+	"accessCode": "Artisticly",
+	"name": "Lumaa",
+	"configured": true,
+
+	"version": {
+		"server": 1,
+		"client": "0.0.1"
+	},
+	"port": 3000,
+	"serverUpdater": "https://api.github.com/repos/lumaa-dev/ArtisticlyServer/releases"
+}

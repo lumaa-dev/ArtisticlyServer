@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "file-system": "^2.2.2",
+    "music-metadata": "^7.14.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "https": "^1.0.0",
+    "local-ip-address": "^1.0.0"
+  }
+}
