@@ -93,6 +93,7 @@ app.get("/musics", async (req, res) => {
 	}
 });
 
+
 app.get("/music/:id", (req, res) => {
 	const { id } = req.params;
 	let includesHidden = isCorrectCode(req);
@@ -122,13 +123,18 @@ app.get("/music/:id", (req, res) => {
 	}
 });
 
+app.get("/code", (req, res) => {
+	let correct = isCorrectCode(req)
+	return res.status(correct ? 200 : 301).send({ correct });
+})
+
 /**
  * Checks if the code received from a client is the one chosen by the server admin
  * @param {Request} request The request received from a client
  * @returns {Boolean} Returns `true`, if the code matches
  */
 function isCorrectCode(request) {
-	let sentCode = request.credentials;
+	let sentCode = request.headers.get("Authorization");
 	return sentCode == accessCode;
 }
 
