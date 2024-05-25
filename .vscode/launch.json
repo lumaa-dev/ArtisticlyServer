@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "command": "zip ArtisticlyServer.zip server.js config.json package-lock.json package.json songs/README.md",
+            "command": "zip ArtisticlyServer.zip server.js config.json package-lock.json package.json songs/README.md && exit",
             "name": "Build ZIP",
             "request": "launch",
             "type": "node-terminal"
