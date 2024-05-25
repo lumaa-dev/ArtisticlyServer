@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.get("/", (_, res) =>
-	res.status(200).json({ versions: version, online: true })
+	res.status(200).json({ versions: version, artisticly: true })
 );
 
 // Start the server
