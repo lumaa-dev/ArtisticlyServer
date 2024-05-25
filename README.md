@@ -15,4 +15,4 @@ Beforehand, you need **npm and node** on your computer or server.
 
 2. Edit the [`config.json` file](config.json) by putting your own access code and name. Don't forget to set `configured` to `true`!
 
-3. You can now run the server by doing `node server.js`, and voilà!
+3. You can now run the server by doing `npm install` then `node server.js`, et voilà!
