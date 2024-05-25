@@ -37,7 +37,7 @@ async function forceStart() {
 
 	app.listen(port, () => {
 		console.log(
-			`--o--\n\n\n\n\n\n\n\n\n\n\n\n--o--\n[Artisticly] - Server started successfully on port ${port}.${latest ? '\n\n' : '\n\n/!\\ There is a new server-version available on https://github.com/lumaa-dev/ArtisticlyServer/releases/latest\n\n'}Local: http://localhost:${port}\nNetwork: http://${local()}:${port}\n--o--`
+			`--o--\n\n\n\n\n\n\n\n\n\n\n\n--o--\n[Artisticly v${version.server}] - Server started successfully on port ${port}.${latest ? `\n\nBuilt for client v${version.client}\n\n` : '\n\n/!\\ There is a new server-version available on https://github.com/lumaa-dev/ArtisticlyServer/releases/latest\n\n'}Local: http://localhost:${port}\nNetwork: http://${local()}:${port}\n--o--`
 		);
 	});
 }
