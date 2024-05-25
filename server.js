@@ -9,6 +9,7 @@ const { fs } = require("file-system");
 const {
 	port,
 	version,
+	name,
 	configured,
 	accessCode,
 	serverUpdater,
@@ -20,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.get("/", (_, res) =>
-	res.status(200).json({ versions: version, artisticly: true })
+	res.status(200).json({ versions: version, username: name, artisticly: true })
 );
 
 // Start the server
