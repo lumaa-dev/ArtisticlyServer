@@ -134,7 +134,7 @@ app.get("/code", (req, res) => {
  * @returns {Boolean} Returns `true`, if the code matches
  */
 function isCorrectCode(request) {
-	let sentCode = request.headers.get("Authorization");
+	let sentCode = request.get("Authorization");
 	return sentCode == accessCode;
 }
 
