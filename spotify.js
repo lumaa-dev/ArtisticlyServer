@@ -1,0 +1,277 @@
+const fetch = require("node-fetch");
+const sdl = require("@nechlophomeriaa/spotifydl");
+const fs = require("fs");
+const wavEncoder = require("wav-encoder");
+const { write: writeMetadata, setFfmpegPath } = require("ffmetadata");
+const ffmpegPath = require("ffmpeg-static");
+const audioContext = new (require("web-audio-api").AudioContext)();
+
+/**
+ * Spotify Developer documentation: https://developer.spotify.com/documentation/web-api
+ */
+class SpotifyAPI {
+	constructor(clientId, clientSecret) {
+		if (typeof clientId == "string" && typeof clientSecret == "string") {
+			this.clientId = clientId;
+			this.clientSecret = clientSecret;
+			this.accessToken = null;
+		}
+	}
+
+	/**
+	 * Get a Spotify access token
+	 * @returns {Promise<{"access_token": string,"token_type": string,"expires_in": number}>} A temporary Spotify access token
+	 */
+	async getToken() {
+		const url = "https://accounts.spotify.com/api/token";
+		const params = new URLSearchParams();
+		params.append("grant_type", "client_credentials");
+		params.append("client_id", this.clientId);
+		params.append("client_secret", this.clientSecret);
+
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: params,
+		});
+
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+
+		/**@type {{"access_token": string,"token_type": string,"expires_in": number}} */
+		const data = await response.json();
+		this.accessToken = `${data.token_type} ${data.access_token}`;
+		return data;
+	}
+
+	/**
+	 * Get data of a Spotify album
+	 * @param {string} link A link to a Spotify album
+	 * @returns {string?} The [Spotify ID](https://developer.spotify.com/documentation/web-api/concepts/spotify-uris-ids) of the link
+	 */
+	getAlbumIdFromLink(link) {
+		let linkFormat = `${openSpotifyLink("album")}/`;
+		if (link.startsWith(linkFormat)) {
+			let albumId = link.replace(linkFormat, "");
+			return albumId;
+		}
+		return null;
+	}
+
+	/**
+	 * Get all the tracks of a Spotify album
+	 * @param {string} id The album's [Spotify ID](https://developer.spotify.com/documentation/web-api/concepts/spotify-uris-ids)
+	 * @returns {Promise<object>} [Album Tracks](https://developer.spotify.com/documentation/web-api/reference/get-an-albums-tracks)
+	 */
+	async getAlbumTracks(id) {
+		const url = `https://api.spotify.com/v1/albums/${id}/tracks`;
+		const params = new URLSearchParams();
+		params.append("limit", 50);
+		params.append("offset", 0);
+		params.append("market", "US");
+
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+				Authorization: this.accessToken,
+			},
+			body: params,
+		});
+
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+
+		const data = await response.json();
+		return data;
+	}
+}
+
+class SpotifyDL {
+	constructor() {
+		setFfmpegPath(ffmpegPath);
+	}
+
+	async downloadAlbum(id) {
+		let url = `${openSpotifyLink("album")}/${id}`;
+
+		/**@type {string[]} */
+		var newFiles = [];
+
+		await sdl.downloadAlbum(url).then(async (data) => {
+			let coverUrl = data.metadata["cover"];
+			let albumName = data.metadata["title"];
+			await downloadImage(coverUrl, `lastCover.jpeg`);
+
+			setFfmpegPath(ffmpegPath);
+
+			for (let i = 0; i < data.trackList.length; i++) {
+				/**
+				 * @type {{success: bool, metadata: [Object], audioBuffer: Buffer}}
+				 */
+				const track = data.trackList[i];
+				let buffer = track.audioBuffer;
+				let metadata = track.metadata;
+
+				let filename = writeAudioIndex(buffer, false, i + 1, (path) => {
+					writeMetadata(
+						path,
+						{
+							title: metadata["title"],
+							artist: metadata["artists"],
+							album: albumName,
+							attachments: ["lastCover.jpeg"] // this doesn't work, its for future update
+						},
+						function (err) {
+							if (err) console.error("Error writing metadata: " + err);
+							else console.log("Metadata added");
+						}
+					);
+
+					return filename;
+				});
+
+				newFiles.push(filename);
+			}
+		});
+
+		return newFiles;
+	}
+}
+
+function openSpotifyLink(type = "album") {
+	return `https://open.spotify.com/${type}`;
+}
+
+/**
+ * The function `convertAudioBufferToWav` converts an audio buffer to WAV format and writes it to a
+ * file.
+ * @param {Buffer} audioBuffer - The `audioBuffer` parameter in the `convertAudioBufferToWav` function is an
+ * AudioBuffer object that represents a short audio segment in memory. It typically contains audio data
+ * in a specific format (e.g., PCM) with a certain sample rate and number of channels. You can create
+ * an
+ * @param {string} outputFilePath - The `outputFilePath` parameter in the `convertAudioBufferToWav` function is
+ * the file path where the WAV audio file will be saved after conversion. It should be a string that
+ * specifies the location and name of the output file, including the file extension ".wav". For
+ * example, it could
+ */
+async function convertAudioBufferToWav(audioBuffer, outputFilePath) {
+	const sampleRate = audioBuffer.sampleRate;
+	const numberOfChannels = audioBuffer.numberOfChannels;
+
+	// Create an array to hold the channel data
+	const channelData = [];
+	for (let i = 0; i < numberOfChannels; i++) {
+		channelData.push(audioBuffer.getChannelData(i));
+	}
+
+	// Create a WAV audio buffer object
+	const wavBuffer = {
+		sampleRate: sampleRate,
+		channelData: channelData,
+	};
+
+	// Encode the audio data to WAV format
+	const buffer = await wavEncoder.encode(wavBuffer);
+
+	// Write the buffer to a file
+	fs.writeFileSync(outputFilePath, Buffer.from(buffer));
+}
+
+/**
+ * The function `writeAudio` writes an audio buffer to a WAV file in a "songs" folder, with an option
+ * to hide the file.
+ * @param {Buffer} buffer - The `buffer` parameter in the `writeAudio` function is expected to be an audio
+ * buffer containing the audio data that needs to be written to a WAV file. This buffer will be decoded
+ * using the `audioContext.decodeAudioData` method to obtain the audio data, which will then be
+ * converted to a `.wav` file
+ * @param {boolean} [hidden=false] - The `hidden` parameter in the `writeAudio` function is a boolean flag that
+ * determines whether the audio file should be hidden or not. If `hidden` is set to `true`, the
+ * file name of the audio file will include a `0` before the `spotifydl.wav` extension.
+ * @param {(string) => void} onCreation - When it succeeds on creation the `.wav` file, it will execute the `onCreation` function with the file path
+ * as its parameter
+ * @returns {string?} The function `writeAudio` is returning the file name of the `.wav` file as well as a success message "WAV file has been created
+ * successfully!" if the WAV file creation is successful, or an error message "Error:" followed by the
+ * specific error if there is an error during the process.
+ */
+function writeAudio(buffer, hidden = false, onCreation) {
+	return writeAudioIndex(buffer, hidden, 1, onCreation);
+}
+
+/**
+ * The function `writeAudioIndex` writes an audio buffer to a WAV file in a "songs" folder, with an option
+ * to hide the file and an index.
+ * @param {Buffer} buffer - The `buffer` parameter in the `writeAudio` function is expected to be an audio
+ * buffer containing the audio data that needs to be written to a WAV file. This buffer will be decoded
+ * using the `audioContext.decodeAudioData` method to obtain the audio data, which will then be
+ * converted to a `.wav` file
+ * @param {boolean} [hidden=false] - The `hidden` parameter in the `writeAudio` function is a boolean flag that
+ * determines whether the audio file should be hidden or not. If `hidden` is set to `true`, the
+ * file name of the audio file will include a `0` before the `spotifydl.wav` extension.
+ * @param {(string) => void} onCreation - When it succeeds on creation the `.wav` file, it will execute the `onCreation` function with the file path
+ * as its parameter
+ * @returns {string?} The function `writeAudioIndex` is returning the file name of the `.wav` file as well as a success message "WAV file has been created
+ * successfully!" if the WAV file creation is successful, or an error message "Error:" followed by the
+ * specific error if there is an error during the process.
+ */
+function writeAudioIndex(buffer, hidden = false, i = 1, onCreation) {
+	if (!fs.existsSync("./songs")) {
+		console.log(
+			'[Artisticly] - Please create a "songs" folder in the root directory.'
+		);
+		return;
+	}
+	var songs = fs.readdirSync("./songs");
+	songs = songs.filter((el) => {
+		return el.endsWith("mp3") || el.endsWith("wav") || el.endsWith("m4a");
+	});
+
+	let ids = songs.map((el) => {
+		return el.split(/-+/g)[0];
+	});
+	let newId = ids.length + i;
+	let filename = `${newId}-${hidden ? 0 : 1}-spotifydl.wav`;
+
+	audioContext.decodeAudioData(buffer, (audioBuffer) => {
+		convertAudioBufferToWav(audioBuffer, `./songs/${filename}`)
+			.then(() => {
+				console.log("WAV file has been created successfully!");
+				onCreation(`./songs/${filename}`);
+			})
+			.catch((error) => console.error("Error:", error));
+	});
+
+	return filename;
+}
+
+async function downloadImage(url, imagePath) {
+	const response = await fetch(url);
+
+	if (!response.ok) {
+		throw new Error(`HTTP error! status: ${response.status}`);
+	}
+
+	const writer = fs.createWriteStream(imagePath);
+
+	return new Promise((resolve, reject) => {
+		response.body.pipe(writer);
+		let error = null;
+		writer.on("error", (err) => {
+			error = err;
+			writer.close();
+			reject(err);
+		});
+		writer.on("close", () => {
+			if (!error) {
+				resolve(true);
+			}
+		});
+	});
+}
+
+module.exports.api = SpotifyAPI;
+module.exports.downloader = SpotifyDL;

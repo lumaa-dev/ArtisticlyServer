@@ -6,6 +6,7 @@ const local = require("local-ip-address");
 const mm = require("music-metadata");
 const express = require("express");
 const { fs } = require("file-system");
+const spotify = require("./spotify.js")
 const {
 	port,
 	version,
@@ -122,6 +123,22 @@ app.get("/music/:id", (req, res) => {
 			.json({ error: "Song is missing or does not exists" });
 	}
 });
+
+app.post("/spotify/album", async (req, res) => {
+	let { link } = req.query
+
+	if (isCorrectCode(req)) {
+		let api = new spotify.api();
+		let dl = new spotify.downloader();
+
+		let id = api.getAlbumIdFromLink(link)
+		let filenames = await dl.downloadAlbum(id)
+
+		return res.status(200).json({ success: true, newFiles: filenames })
+	} else {
+		return res.status(301).json({ error: "Code is incorrect" })
+	}
+})
 
 app.get("/code", (req, res) => {
 	let correct = isCorrectCode(req)
