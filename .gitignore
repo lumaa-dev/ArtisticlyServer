@@ -3,10 +3,11 @@
 config.json
 test.js
 
-# available audio formats
+# available audio formats & last cover art
 *.wav
 *.mp3
 *.m4a
+lastCover.jpeg
 
 # exports
 ArtisticlyServer.zip
