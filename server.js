@@ -2,6 +2,7 @@
 
 // This is the server-side code for Artisticly, it first requires to edit the `config.json` file with the code given in the client-side app.
 
+const fetch = require("node-fetch");
 const local = require("local-ip-address");
 const mm = require("music-metadata");
 const express = require("express");
