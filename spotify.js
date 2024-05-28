@@ -240,7 +240,8 @@ async function convertAudioBufferToMp3(audioBuffer, outputFilePath) {
     // Set output format and options
     command.output(outputFilePath)
            .audioBitrate('128k')
-           .audioCodec('libmp3lame');
+           .audioCodec('libmp3lame')
+		   .audioFilter('asetrate=44100*2.19008264463'); // Adjust the atempo filter value to match the difference in duration;
 
     // Execute the command
     return new Promise((resolve, reject) => {
