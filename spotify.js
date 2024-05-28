@@ -1,8 +1,9 @@
 const fetch = require("node-fetch");
 const sdl = require("@nechlophomeriaa/spotifydl");
 const fs = require("fs");
-const wavEncoder = require("wav-encoder");
+const { Readable } = require('stream');
 const { write: writeMetadata, setFfmpegPath } = require("ffmetadata");
+const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static");
 const audioContext = new (require("web-audio-api").AudioContext)();
 
@@ -108,6 +109,7 @@ class SpotifyDL {
 			await downloadImage(coverUrl, `lastCover.png`);
 
 			setFfmpegPath(ffmpegPath);
+			ffmpeg.setFfmpegPath(ffmpegPath);
 
 			for (let i = 0; i < data.trackList.length; i++) {
 				/**
@@ -115,22 +117,24 @@ class SpotifyDL {
 				 */
 				const track = data.trackList[i];
 				let buffer = track.audioBuffer;
-				let metadata = track.metadata;
 
 				let filename = writeAudioIndex(buffer, false, i + 1, (path) => {
-					writeMetadata(
-						path,
-						{
-							title: metadata["title"],
-							artist: metadata["artists"],
-							album: albumName,
-							attachments: ["lastCover.jpeg"] // this doesn't work, its for future update
-						},
-						function (err) {
-							if (err) console.error("Error writing metadata: " + err);
-							else console.log("Metadata added");
-						}
-					);
+					const spotifyMetadata = track.metadata;
+					let metadata = {
+						title: spotifyMetadata["title"],
+						artist: spotifyMetadata["artists"],
+						album: albumName,
+					};
+					let art = {
+						attachments: [`lastCover.png`],
+					};
+
+					console.log(path);
+
+					writeMetadata(path, metadata, art, function (err) {
+						if (err) console.error("Error writing metadata: " + err);
+						else console.log("Metadata added");
+					});
 
 					return filename;
 				});
@@ -158,6 +162,7 @@ function openSpotifyLink(type = "album") {
  * the file path where the WAV audio file will be saved after conversion. It should be a string that
  * specifies the location and name of the output file, including the file extension ".wav". For
  * example, it could
+ * @deprecated Use `convertAudioBufferToMp3`
  */
 async function convertAudioBufferToWav(audioBuffer, outputFilePath) {
 	const sampleRate = audioBuffer.sampleRate;
@@ -180,6 +185,75 @@ async function convertAudioBufferToWav(audioBuffer, outputFilePath) {
 
 	// Write the buffer to a file
 	fs.writeFileSync(outputFilePath, Buffer.from(buffer));
+}
+
+/**
+ * The function `convertAudioBufferToMp3` takes an audio buffer, interleaves the channel data, encodes
+ * it to MP3 format, and writes it to an output file.
+ * @param {Buffer} audioBuffer - The `audioBuffer` parameter in the `convertAudioBufferToMp3` function is an
+ * AudioBuffer object that represents a buffer containing audio data. It typically contains audio
+ * samples for one or more channels at a specific sample rate. You can create an AudioBuffer using the
+ * Web Audio API or other audio
+ * @param {string} outputFilePath - The `outputFilePath` parameter in the `convertAudioBufferToMp3` function is
+ * the file path where the MP3 file will be saved after encoding. It should be a string that specifies
+ * the location and name of the output MP3 file. For example, it could be something like `'path
+ * @returns The `convertAudioBufferToMp3` function returns a Promise.
+ */
+async function convertAudioBufferToMp3(audioBuffer, outputFilePath) {
+    const sampleRate = audioBuffer.sampleRate;
+    const numberOfChannels = audioBuffer.numberOfChannels;
+
+    // Create an array to hold the interleaved PCM data
+    const length = audioBuffer.length * numberOfChannels;
+    const interleavedData = new Float32Array(length);
+
+    // Interleave the channel data
+    for (let i = 0; i < audioBuffer.length; i++) {
+        for (let channel = 0; channel < numberOfChannels; channel++) {
+            interleavedData[i * numberOfChannels + channel] = audioBuffer.getChannelData(channel)[i];
+        }
+    }
+
+    // Convert interleaved Float32Array to Int16Array
+    const int16Data = new Int16Array(interleavedData.length);
+    for (let i = 0; i < interleavedData.length; i++) {
+        int16Data[i] = Math.max(-1, Math.min(1, interleavedData[i])) * 32767; // Convert to 16-bit PCM
+    }
+
+    // Create a buffer from the Int16Array
+    const buffer = Buffer.from(int16Data.buffer);
+
+    // Create a readable stream from the buffer
+    const readableStream = new Readable();
+    readableStream.push(buffer);
+    readableStream.push(null); // Indicates the end of the stream
+
+    // Create the FFmpeg command
+    const command = ffmpeg();
+
+    // Set input as a readable stream
+    command.input(readableStream)
+           .inputFormat('s16le')
+           .audioFrequency(sampleRate)
+           .audioChannels(numberOfChannels);
+
+    // Set output format and options
+    command.output(outputFilePath)
+           .audioBitrate('128k')
+           .audioCodec('libmp3lame');
+
+    // Execute the command
+    return new Promise((resolve, reject) => {
+        command.on('end', () => {
+            console.log('MP3 encoding complete.');
+            resolve();
+        })
+        .on('error', (err) => {
+            console.error('Error encoding MP3:', err);
+            reject(err);
+        })
+        .run();
+    });
 }
 
 /**
@@ -234,12 +308,12 @@ function writeAudioIndex(buffer, hidden = false, i = 1, onCreation) {
 		return el.split(/-+/g)[0];
 	});
 	let newId = ids.length + i;
-	let filename = `${newId}-${hidden ? 0 : 1}-spotifydl.wav`;
+	let filename = `${newId}-${hidden ? 0 : 1}-spotifydl.mp3`;
 
 	audioContext.decodeAudioData(buffer, (audioBuffer) => {
-		convertAudioBufferToWav(audioBuffer, `./songs/${filename}`)
+		convertAudioBufferToMp3(audioBuffer, `./songs/${filename}`)
 			.then(() => {
-				console.log("WAV file has been created successfully!");
+				console.log("MP3 file has been created successfully!");
 				onCreation(`./songs/${filename}`);
 			})
 			.catch((error) => console.error("Error:", error));
