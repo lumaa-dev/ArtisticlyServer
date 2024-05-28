@@ -105,7 +105,7 @@ class SpotifyDL {
 		await sdl.downloadAlbum(url).then(async (data) => {
 			let coverUrl = data.metadata["cover"];
 			let albumName = data.metadata["title"];
-			await downloadImage(coverUrl, `lastCover.jpeg`);
+			await downloadImage(coverUrl, `lastCover.png`);
 
 			setFfmpegPath(ffmpegPath);
 
