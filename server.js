@@ -7,7 +7,7 @@ const local = require("local-ip-address");
 const mm = require("music-metadata");
 const express = require("express");
 const { fs } = require("file-system");
-const spotify = require("./spotify.js")
+const spotify = require("./spotify.js");
 const {
 	port,
 	version,
@@ -35,11 +35,11 @@ async function forceStart() {
 		return;
 	}
 
-	let latest = await isLatestVersion()
+	let latest = await isLatestVersion();
 
 	app.listen(port, () => {
 		console.log(
-			`--o--\n\n\n\n\n\n\n\n\n\n\n\n--o--\n[Artisticly v${version.server}] - Server started successfully on port ${port}.${latest ? `\n\nBuilt for client v${version.client}\n\n` : '\n\n/!\\ There is a new server-version available on https://github.com/lumaa-dev/ArtisticlyServer/releases/latest\n\n'}Local: http://localhost:${port}\nNetwork: http://${local()}:${port}\n--o--`
+			`--o--\n\n\n\n\n\n\n\n\n\n\n\n--o--\n[Artisticly v${version.server}] - Server started successfully on port ${port}.${latest ? `\n\nBuilt for client v${version.client}\n\n` : "\n\n/!\\ There is a new server-version available on https://github.com/lumaa-dev/ArtisticlyServer/releases/latest\n\n"}Local: http://localhost:${port}\nNetwork: http://${local()}:${port}\n--o--`
 		);
 	});
 }
@@ -65,36 +65,24 @@ app.get("/musics", async (req, res) => {
 			});
 		}
 
-		if (typeof query == "string") {
-			if (isQueryId) {
-				songs.filter((el) => { return el["id"] == Number(query) })
-			} else {
-				let availableTypes = ["title", "album", "artist"]
-				if (availableTypes.includes(searchType.toLowerCase())) {
-					let results = searchSong(songs, query.toLowerCase(), searchType)
-					return res.status(200).json(results)
-				} else {
-					return res.status(301).json({ error: "Type is incorrect" })
-				}
-			}
-			return res.status(200).json(songs);
-		}
-
 		songs = songs.slice(
 			limit * page,
 			Math.min(songs.length, limit * (page + 1))
 		);
 
-		songs = songs.sort(function(a, b) {
-			return Number(a.split(/\-+/g, 2)[1]) - Number(b.split(/\-+/g, 2)[1]);
-		  })
+		songs.sort(function (a, b) {
+			return Number(a.split(/\-+/g, 2)[0]) - Number(b.split(/\-+/g, 2)[0]);
+		});
 
 		for (let i = 0; i < songs.length; i++) {
 			const el = songs[i];
-			let fullPath = `${__dirname}/songs/${el}`
+			let fullPath = `${__dirname}/songs/${el}`;
 
-			var { common: metadata } = await mm.parseFile(fullPath)
-			let artwork = typeof metadata.picture !== 'undefined' ? metadata.picture[0].data.toString("base64") : ""
+			var { common: metadata } = await mm.parseFile(fullPath);
+			let artwork =
+				typeof metadata.picture !== "undefined"
+					? metadata.picture[0].data.toString("base64")
+					: "";
 
 			songs[i] = {
 				id: Number(el.split(/\-+/g)[0]),
@@ -102,10 +90,33 @@ app.get("/musics", async (req, res) => {
 					name: metadata.title ?? "Unknown Song",
 					artist: metadata.artist ?? "Unknown Artist",
 					album: metadata.album ?? "Unknown Album",
-					artwork: artwork
-				}
+					artwork: artwork,
+				},
 			};
 		}
+
+		if (typeof query == "string") {
+			if (isQueryId) {
+				let song = songs.filter((el) => {
+					return el["id"] == Number(query);
+				})[0];
+				return res.status(200).json(song);
+			} else {
+				let availableTypes = ["title", "album", "artist"];
+				if (typeof searchType == "string") {
+					if (availableTypes.includes(searchType.toLowerCase())) {
+						let results = searchSong(songs, query.toLowerCase(), searchType);
+						return res.status(200).json(results);
+					} else {
+						return res.status(301).json({ error: "Type is incorrect" });
+					}
+				} else {
+					return res.status(301).json({ error: "Missing type" });
+				}
+			}
+		}
+
+		return res.status(200).json(songs);
 	} else {
 		console.log(
 			'[Artisticly] - Please create a "songs" folder in the root directory.'
@@ -113,7 +124,6 @@ app.get("/musics", async (req, res) => {
 		return res.status(301).json({ error: "Songs folder is missing" });
 	}
 });
-
 
 app.get("/music/:id", (req, res) => {
 	const { id } = req.params;
@@ -145,78 +155,79 @@ app.get("/music/:id", (req, res) => {
 });
 
 app.post("/spotify/track", async (req, res) => {
-	let { link } = req.query
+	let { link } = req.query;
 
 	if (isCorrectCode(req)) {
 		let api = new spotify.api();
 		let dl = new spotify.downloader();
 
-		let id = api.getIdFromLink(link, "track")
-		let filename = await dl.downloadTrack(id)
+		let id = api.getIdFromLink(link, "track");
+		let filename = await dl.downloadTrack(id);
 
-		return res.status(200).json({ success: true, newFile: filename })
+		return res.status(200).json({ success: true, newFile: filename });
 	} else {
-		return res.status(301).json({ error: "Code is incorrect" })
+		return res.status(301).json({ error: "Code is incorrect" });
 	}
-})
+});
 
 app.post("/spotify/album", async (req, res) => {
-	let { link } = req.query
+	let { link } = req.query;
 
 	if (isCorrectCode(req)) {
 		let api = new spotify.api();
 		let dl = new spotify.downloader();
 
-		let id = api.getIdFromLink(link, "album")
-		let filenames = await dl.downloadAlbum(id)
+		let id = api.getIdFromLink(link, "album");
+		let filenames = await dl.downloadAlbum(id);
 
-		return res.status(200).json({ success: true, newFiles: filenames })
+		return res.status(200).json({ success: true, newFiles: filenames });
 	} else {
-		return res.status(301).json({ error: "Code is incorrect" })
+		return res.status(301).json({ error: "Code is incorrect" });
 	}
-})
+});
 
 app.get("/code", (req, res) => {
-	let correct = isCorrectCode(req)
+	let correct = isCorrectCode(req);
 	return res.status(correct ? 200 : 301).send({ correct });
-})
+});
 
-
-//TODO: OPTIMISER
 /**
  * Searches through an array of songs
- * @param {{ id: number, metadata: { title: string, artist: string, album: string, artwork: string }}[]} songs
+ * @param {{ id: number, metadata: { name: string, artist: string, album: string, artwork: string }}[]} songs
  * @param {string} query The content to search
  * @param {"title"|"artist"|"album"} searchType The serach filter
- * @returns {{ id: number, metadata: { title: string, artist: string, album: string, artwork: string }}[]} An array of songs corresponding to the query and search filter
+ * @returns {{ id: number, metadata: { name: string, artist: string, album: string, artwork: string }}[]} An array of songs corresponding to the query and search filter
  */
 function searchSong(songs, query, searchType) {
 	let isTitle = searchType == "title";
 	let isArtist = searchType == "artist";
 	let isAlbum = searchType == "album";
 
-	if (isTitle) {
-		/**@type {{ id: number, metadata: { title: string }}[]} */
-		let titles = songs.map((el) => { return { id: el.id, metadata: { title: el.metadata.title } } });
-		let filtered = titles.filter((el) => { return el.metadata.title.toLowerCase().includes(query) });
-		let mapped = filtered.map((el) => { return el.id })
-		let results = songs.filter((el) => { return mapped.includes(el.id) })
-		return results
-	} else if (isArtist) {
-		/**@type {{ id: number, metadata: { artist: string }}[]} */
-		let artists = songs.map((el) => { return { id: el.id, metadata: { artist: el.metadata.artist } } });
-		let filtered = artists.filter((el) => { return el.metadata.artist.toLowerCase().includes(query) });
-		let mapped = filtered.map((el) => { return el.id })
-		let results = songs.filter((el) => { return mapped.includes(el.id) })
-		return results
-	} else if (isAlbum) {
-		/**@type {{ id: number, metadata: { album: string }}[]} */
-		let albums = songs.map((el) => { return { id: el.id, metadata: { album: el.metadata.album } } });
-		let filtered = albums.filter((el) => { return el.metadata.album.toLowerCase().includes(query) });
-		let mapped = filtered.map((el) => { return el.id })
-		let results = songs.filter((el) => { return mapped.includes(el.id) })
-		return results
-	}
+	/**@type {{ id: number, searched: string }[]} */
+	let found = songs.map((el) => {
+		var searched = "";
+		if (isTitle) {
+			searched = el.metadata.name;
+		} else if (isArtist) {
+			searched = el.metadata.artist;
+		} else if (isAlbum) {
+			searched = el.metadata.album;
+		}
+
+		return { id: el.id, searched };
+	});
+	let filtered = found.filter((el) => {
+		let l = el.searched.toLowerCase();
+		return l.includes(query.toLowerCase());
+	});
+	let mapped = filtered.map((el) => {
+		return el.id;
+	});
+	let results = songs.filter((el) => {
+		return mapped.includes(el.id);
+	});
+
+	return results;
 }
 
 /**
@@ -235,8 +246,10 @@ function isCorrectCode(request) {
  * @returns {Promise<Boolean>} If set to true, the current version is the latest available.
  */
 async function isLatestVersion() {
-	const releases = await fetch(`${serverUpdater}`).then(async (res) => await res.json())
-	let latestVersion = releases[0]['tag_name']
+	const releases = await fetch(`${serverUpdater}`).then(
+		async (res) => await res.json()
+	);
+	let latestVersion = releases[0]["tag_name"];
 
 	return latestVersion == version.server;
 }
