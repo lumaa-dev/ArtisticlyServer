@@ -46,10 +46,11 @@ async function forceStart() {
 
 // GET calls
 app.get("/musics", async (req, res) => {
-	const { p, l } = req.query;
+	const { p, l, q: query, type: searchType } = req.query;
 
 	let page = Math.min((p ?? 1) - 1, 20);
 	let limit = Math.min(l ?? 20, 45);
+	let isQueryId = !isNaN(Number(query));
 	let includesHidden = isCorrectCode(req);
 
 	if (fs.existsSync("./songs")) {
@@ -64,7 +65,20 @@ app.get("/musics", async (req, res) => {
 			});
 		}
 
-		console.log(`page: ${page}`);
+		if (typeof query == "string") {
+			if (isQueryId) {
+				songs.filter((el) => { return el["id"] == Number(query) })
+			} else {
+				let availableTypes = ["title", "album", "artist"]
+				if (availableTypes.includes(searchType.toLowerCase())) {
+					let results = searchSong(songs, query.toLowerCase(), searchType)
+					return res.status(200).json(results)
+				} else {
+					return res.status(301).json({ error: "Type is incorrect" })
+				}
+			}
+			return res.status(200).json(songs);
+		}
 
 		songs = songs.slice(
 			limit * page,
@@ -92,7 +106,6 @@ app.get("/musics", async (req, res) => {
 				}
 			};
 		}
-		return res.status(200).json(songs);
 	} else {
 		console.log(
 			'[Artisticly] - Please create a "songs" folder in the root directory.'
@@ -167,6 +180,42 @@ app.get("/code", (req, res) => {
 	let correct = isCorrectCode(req)
 	return res.status(correct ? 200 : 301).send({ correct });
 })
+
+/**
+ * Searches through an array of songs
+ * @param {{ id: number, metadata: { title: string, artist: string, album: string, artwork: string }}[]} songs
+ * @param {string} query The content to search
+ * @param {"title"|"artist"|"album"} searchType The serach filter
+ * @returns {{ id: number, metadata: { title: string, artist: string, album: string, artwork: string }}[]} An array of songs corresponding to the query and search filter
+ */
+function searchSong(songs, query, searchType) {
+	let isTitle = searchType == "title";
+	let isArtist = searchType == "artist";
+	let isAlbum = searchType == "album";
+
+	if (isTitle) {
+		/**@type {{ id: number, metadata: { title: string }}[]} */
+		let titles = songs.map((el) => { return { id: el.id, metadata: { title: el.metadata.title } } });
+		let filtered = titles.filter((el) => { return el.metadata.title.toLowerCase().includes(query) });
+		let mapped = filtered.map((el) => { return el.id })
+		let results = songs.filter((el) => { return mapped.includes(el.id) })
+		return results
+	} else if (isArtist) {
+		/**@type {{ id: number, metadata: { artist: string }}[]} */
+		let artists = songs.map((el) => { return { id: el.id, metadata: { artist: el.metadata.artist } } });
+		let filtered = artists.filter((el) => { return el.metadata.artist.toLowerCase().includes(query) });
+		let mapped = filtered.map((el) => { return el.id })
+		let results = songs.filter((el) => { return mapped.includes(el.id) })
+		return results
+	} else if (isAlbum) {
+		/**@type {{ id: number, metadata: { album: string }}[]} */
+		let albums = songs.map((el) => { return { id: el.id, metadata: { album: el.metadata.album } } });
+		let filtered = albums.filter((el) => { return el.metadata.album.toLowerCase().includes(query) });
+		let mapped = filtered.map((el) => { return el.id })
+		let results = songs.filter((el) => { return mapped.includes(el.id) })
+		return results
+	}
+}
 
 /**
  * Checks if the code received from a client is the one chosen by the server admin
