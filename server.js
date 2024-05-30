@@ -71,6 +71,10 @@ app.get("/musics", async (req, res) => {
 			Math.min(songs.length, limit * (page + 1))
 		);
 
+		songs = songs.sort(function(a, b) {
+			return Number(a.split(/\-+/g, 2)[1]) - Number(b.split(/\-+/g, 2)[1]);
+		  })
+
 		for (let i = 0; i < songs.length; i++) {
 			const el = songs[i];
 			let fullPath = `${__dirname}/songs/${el}`
