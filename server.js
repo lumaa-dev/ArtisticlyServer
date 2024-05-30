@@ -181,6 +181,8 @@ app.get("/code", (req, res) => {
 	return res.status(correct ? 200 : 301).send({ correct });
 })
 
+
+//TODO: OPTIMISER
 /**
  * Searches through an array of songs
  * @param {{ id: number, metadata: { title: string, artist: string, album: string, artwork: string }}[]} songs
