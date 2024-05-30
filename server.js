@@ -103,9 +103,10 @@ app.get("/musics", async (req, res) => {
 						let results = searchSong(songs, query.toLowerCase(), searchType);
 						let originalCount = results.length
 
+						// searching only allows 10 results
 						results = results.slice(
-							limit * page,
-							Math.min(results.length, limit * (page + 1))
+							10 * page,
+							Math.min(results.length, 10 * (page + 1))
 						);
 
 						return res.status(200).json({ results, count: originalCount });
