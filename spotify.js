@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 const sdl = require("@nechlophomeriaa/spotifydl");
 const fs = require("fs");
-const { Readable } = require('stream');
+const { Readable } = require("stream");
 const { write: writeMetadata, setFfmpegPath } = require("ffmetadata");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static");
@@ -51,10 +51,11 @@ class SpotifyAPI {
 	/**
 	 * Get data of a Spotify album
 	 * @param {string} link A link to a Spotify album
+	 * @param {"album"|"track"} type Type of Spotify content to fetch
 	 * @returns {string?} The [Spotify ID](https://developer.spotify.com/documentation/web-api/concepts/spotify-uris-ids) of the link
 	 */
-	getAlbumIdFromLink(link) {
-		let linkFormat = `${openSpotifyLink("album")}/`;
+	getIdFromLink(link, type = "album") {
+		let linkFormat = `${openSpotifyLink(type)}/`;
 		if (link.startsWith(linkFormat)) {
 			let albumId = link.replace(linkFormat, "");
 			return albumId;
@@ -95,6 +96,50 @@ class SpotifyAPI {
 class SpotifyDL {
 	constructor() {
 		setFfmpegPath(ffmpegPath);
+		ffmpeg.setFfmpegPath(ffmpegPath);
+	}
+
+	async downloadTrack(id) {
+		let url = `${openSpotifyLink("track")}/${id}`;
+
+		/**@type {string} */
+		var newFile = "";
+
+		await sdl.downloadTrack(url).then(async (data) => {
+			const spotifyMetadata = data;
+			let coverUrl = spotifyMetadata["imageUrl"];
+			let albumName = spotifyMetadata["album"]["name"]
+			await downloadImage(coverUrl, `lastCover.png`);
+
+			setFfmpegPath(ffmpegPath);
+			ffmpeg.setFfmpegPath(ffmpegPath);
+
+			let buffer = data.audioBuffer;
+
+			let filename = writeAudio(buffer, false, (path) => {
+				let metadata = {
+					title: spotifyMetadata["title"],
+					artist: spotifyMetadata["artists"],
+					album: albumName,
+				};
+				let art = {
+					attachments: [`lastCover.png`],
+				};
+
+				console.log(path);
+
+				writeMetadata(path, metadata, art, function (err) {
+					if (err) console.error("Error writing metadata: " + err);
+					else console.log("Metadata added");
+				});
+
+				return filename;
+			});
+
+			newFile = filename
+		});
+
+		return newFile;
 	}
 
 	async downloadAlbum(id) {
@@ -200,61 +245,65 @@ async function convertAudioBufferToWav(audioBuffer, outputFilePath) {
  * @returns The `convertAudioBufferToMp3` function returns a Promise.
  */
 async function convertAudioBufferToMp3(audioBuffer, outputFilePath) {
-    const sampleRate = audioBuffer.sampleRate;
-    const numberOfChannels = audioBuffer.numberOfChannels;
+	const sampleRate = audioBuffer.sampleRate;
+	const numberOfChannels = audioBuffer.numberOfChannels;
 
-    // Create an array to hold the interleaved PCM data
-    const length = audioBuffer.length * numberOfChannels;
-    const interleavedData = new Float32Array(length);
+	// Create an array to hold the interleaved PCM data
+	const length = audioBuffer.length * numberOfChannels;
+	const interleavedData = new Float32Array(length);
 
-    // Interleave the channel data
-    for (let i = 0; i < audioBuffer.length; i++) {
-        for (let channel = 0; channel < numberOfChannels; channel++) {
-            interleavedData[i * numberOfChannels + channel] = audioBuffer.getChannelData(channel)[i];
-        }
-    }
+	// Interleave the channel data
+	for (let i = 0; i < audioBuffer.length; i++) {
+		for (let channel = 0; channel < numberOfChannels; channel++) {
+			interleavedData[i * numberOfChannels + channel] =
+				audioBuffer.getChannelData(channel)[i];
+		}
+	}
 
-    // Convert interleaved Float32Array to Int16Array
-    const int16Data = new Int16Array(interleavedData.length);
-    for (let i = 0; i < interleavedData.length; i++) {
-        int16Data[i] = Math.max(-1, Math.min(1, interleavedData[i])) * 32767; // Convert to 16-bit PCM
-    }
+	// Convert interleaved Float32Array to Int16Array
+	const int16Data = new Int16Array(interleavedData.length);
+	for (let i = 0; i < interleavedData.length; i++) {
+		int16Data[i] = Math.max(-1, Math.min(1, interleavedData[i])) * 32767; // Convert to 16-bit PCM
+	}
 
-    // Create a buffer from the Int16Array
-    const buffer = Buffer.from(int16Data.buffer);
+	// Create a buffer from the Int16Array
+	const buffer = Buffer.from(int16Data.buffer);
 
-    // Create a readable stream from the buffer
-    const readableStream = new Readable();
-    readableStream.push(buffer);
-    readableStream.push(null); // Indicates the end of the stream
+	// Create a readable stream from the buffer
+	const readableStream = new Readable();
+	readableStream.push(buffer);
+	readableStream.push(null); // Indicates the end of the stream
 
-    // Create the FFmpeg command
-    const command = ffmpeg();
+	// Create the FFmpeg command
+	const command = ffmpeg();
 
-    // Set input as a readable stream
-    command.input(readableStream)
-           .inputFormat('s16le')
-           .audioFrequency(sampleRate)
-           .audioChannels(numberOfChannels);
+	// Set input as a readable stream
+	command
+		.input(readableStream)
+		.inputFormat("s16le")
+		.audioFrequency(sampleRate)
+		.audioChannels(numberOfChannels);
 
-    // Set output format and options
-    command.output(outputFilePath)
-           .audioBitrate('128k')
-           .audioCodec('libmp3lame')
-		   .audioFilter('asetrate=44100*2.19008264463'); // Adjust the atempo filter value to match the difference in duration;
+	// Set output format and options
+	command
+		.output(outputFilePath)
+		.audioBitrate("128k")
+		.audioCodec("libmp3lame")
+		.audioFilter("asetrate=44100*2.19008264463"); // Adjust the atempo filter value to match the difference in duration;
 
-    // Execute the command
-    return new Promise((resolve, reject) => {
-        command.on('end', () => {
-            console.log('MP3 encoding complete.');
-            resolve();
-        })
-        .on('error', (err) => {
-            console.error('Error encoding MP3:', err);
-            reject(err);
-        })
-        .run();
-    });
+	// Execute the command
+	return new Promise((resolve, reject) => {
+		command
+			.on("end", () => {
+				console.log("MP3 encoding complete.");
+				resolve();
+			})
+			.on("error", (err) => {
+				console.error("Error encoding MP3:", err);
+				reject(err);
+			})
+			.run();
+	});
 }
 
 /**

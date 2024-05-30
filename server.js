@@ -127,6 +127,22 @@ app.get("/music/:id", (req, res) => {
 	}
 });
 
+app.post("/spotify/track", async (req, res) => {
+	let { link } = req.query
+
+	if (isCorrectCode(req)) {
+		let api = new spotify.api();
+		let dl = new spotify.downloader();
+
+		let id = api.getIdFromLink(link, "track")
+		let filename = await dl.downloadTrack(id)
+
+		return res.status(200).json({ success: true, newFile: filename })
+	} else {
+		return res.status(301).json({ error: "Code is incorrect" })
+	}
+})
+
 app.post("/spotify/album", async (req, res) => {
 	let { link } = req.query
 
@@ -134,7 +150,7 @@ app.post("/spotify/album", async (req, res) => {
 		let api = new spotify.api();
 		let dl = new spotify.downloader();
 
-		let id = api.getAlbumIdFromLink(link)
+		let id = api.getIdFromLink(link, "album")
 		let filenames = await dl.downloadAlbum(id)
 
 		return res.status(200).json({ success: true, newFiles: filenames })
