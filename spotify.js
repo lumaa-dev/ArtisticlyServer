@@ -207,7 +207,7 @@ function openSpotifyLink(type = "album") {
  * the file path where the WAV audio file will be saved after conversion. It should be a string that
  * specifies the location and name of the output file, including the file extension ".wav". For
  * example, it could
- * @deprecated Use `convertAudioBufferToMp3`
+ * @deprecated Use `convertAudioBufferToMp3` for Spotify audio files
  */
 async function convertAudioBufferToWav(audioBuffer, outputFilePath) {
 	const sampleRate = audioBuffer.sampleRate;
