@@ -46,7 +46,7 @@ async function forceStart() {
 
 // GET calls
 app.get("/musics", async (req, res) => {
-	const { p, l } = req.body;
+	const { p, l } = req.query;
 
 	let page = Math.min((p ?? 1) - 1, 20);
 	let limit = Math.min(l ?? 20, 45);
@@ -63,6 +63,8 @@ app.get("/musics", async (req, res) => {
 				return el.split(/\-+/g, 2)[1] == "1";
 			});
 		}
+
+		console.log(`page: ${page}`);
 
 		songs = songs.slice(
 			limit * page,
