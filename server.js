@@ -65,11 +65,6 @@ app.get("/musics", async (req, res) => {
 			});
 		}
 
-		songs = songs.slice(
-			limit * page,
-			Math.min(songs.length, limit * (page + 1))
-		);
-
 		songs.sort(function (a, b) {
 			return Number(a.split(/\-+/g, 2)[0]) - Number(b.split(/\-+/g, 2)[0]);
 		});
@@ -106,7 +101,14 @@ app.get("/musics", async (req, res) => {
 				if (typeof searchType == "string") {
 					if (availableTypes.includes(searchType.toLowerCase())) {
 						let results = searchSong(songs, query.toLowerCase(), searchType);
-						return res.status(200).json(results);
+						let originalCount = results.length
+
+						results = results.slice(
+							limit * page,
+							Math.min(results.length, limit * (page + 1))
+						);
+
+						return res.status(200).json({ results, count: originalCount });
 					} else {
 						return res.status(301).json({ error: "Type is incorrect" });
 					}
@@ -115,6 +117,11 @@ app.get("/musics", async (req, res) => {
 				}
 			}
 		}
+
+		songs = songs.slice(
+			limit * page,
+			Math.min(songs.length, limit * (page + 1))
+		);
 
 		return res.status(200).json(songs);
 	} else {
