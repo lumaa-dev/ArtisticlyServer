@@ -2,6 +2,7 @@
 .DS_Store
 config.json
 test.js
+store/token
 
 # available audio formats & last cover art
 *.wav
