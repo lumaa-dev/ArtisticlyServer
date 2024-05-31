@@ -101,7 +101,7 @@ app.get("/musics", async (req, res) => {
 				if (typeof searchType == "string") {
 					if (availableTypes.includes(searchType.toLowerCase())) {
 						let results = searchSong(songs, query.toLowerCase(), searchType);
-						let originalCount = results.length
+						let originalCount = results.length;
 
 						// searching only allows 10 results
 						results = results.slice(
@@ -161,6 +161,40 @@ app.get("/music/:id", (req, res) => {
 			.json({ error: "Song is missing or does not exists" });
 	}
 });
+
+app.delete("/music/:id", (req, res) => {
+	const { id } = req.params;
+	let includesHidden = isCorrectCode(req);
+
+	if (fs.existsSync("./songs")) {
+		var songs = fs.readdirSync("./songs");
+		let song = songs.filter((el) => {
+			return (
+				el.startsWith(includesHidden ? `${id}` : `${id}-1`) &&
+				(el.endsWith("mp3") || el.endsWith("wav") || el.endsWith("m4a"))
+			);
+		})[0];
+
+		if (!song) {
+			console.log(`[Artisticly] - Song with ID "${id}" does not exist.`);
+			return res
+				.status(301)
+				.json({ error: "Song is missing or does not exists" });
+		}
+
+		let filePath = `${__dirname}/songs/${song}`;
+		fs.rm(filePath, function () {
+			return res.status(200).json({ success: true });
+		});
+	} else {
+		console.log(`[Artisticly] - Song with ID "${id}" does not exist.`);
+		return res
+			.status(301)
+			.json({ error: "Song is missing or does not exists" });
+	}
+});
+
+//TODO: Move songs (switch IDs)
 
 app.post("/spotify/track", async (req, res) => {
 	let { link } = req.query;
