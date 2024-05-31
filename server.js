@@ -267,3 +267,5 @@ if (configured) {
 } else {
 	console.log("[Artisticly] - You have not updated your server's settings.");
 }
+
+//TODO: Fix bug with album: https://open.spotify.com/album/74wV2lmFaeLdSny2CU7EQw?si=rCgsuaqQSvyzQxD-Hizj1Q
