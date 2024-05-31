@@ -229,7 +229,7 @@ app.post("/spotify/album", async (req, res) => {
 });
 
 app.get("/code", (req, res) => {
-	let correct = isCorrectCode(req);
+	let correct = isCorrectCode(req, true);
 	return res.status(correct ? 200 : 301).send({ correct });
 });
 
@@ -277,9 +277,17 @@ function searchSong(songs, query, searchType) {
  * @param {Request} request The request received from a client
  * @returns {Boolean} Returns `true`, if the code matches
  */
-function isCorrectCode(request) {
+function isCorrectCode(request, slowsDown = false) {
 	let sentCode = request.get("Authorization");
-	return sentCode == accessCode;
+	let matches = sentCode == accessCode
+
+	if (slowsDown && !matches) {
+		setTimeout(() => {
+			return matches;
+		}, 1.75*1000)
+	} else {
+		return matches;
+	}
 }
 
 /**
