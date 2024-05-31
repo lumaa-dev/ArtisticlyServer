@@ -4,8 +4,8 @@
 	"configured": false,
 
 	"version": {
-		"server": 8,
-		"client": "0.0.4"
+		"server": 9,
+		"client": "0.0.5"
 	},
 	"port": 3000,
 	"serverUpdater": "https://api.github.com/repos/lumaa-dev/ArtisticlyServer/releases"
