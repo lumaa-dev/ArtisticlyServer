@@ -162,6 +162,30 @@ app.get("/music/:id", (req, res) => {
 	}
 });
 
+app.get("/lyrics/:id", (req, res) => {
+	const { id } = req.params;
+	// let includesHidden = isCorrectCode(req);
+
+	if (fs.existsSync("./lyrics")) {
+		var lyrics = fs.readdirSync("./lyrics");
+		let lyric = lyrics.filter((el) => {
+			return el.startsWith(`${id}`) && el.endsWith("json");
+		})[0];
+
+		if (!lyric) {
+			console.log(`[Artisticly] - Lyrics with ID "${id}" don't exist.`);
+			return res
+				.status(301)
+				.json([]);
+		}
+
+		return res.status(200).sendFile(`${__dirname}/lyrics/${lyric}`);
+	} else {
+		console.log(`[Artisticly] - Lyrics folder doesn't exist.`);
+		return res.status(301).json({ error: "Lyrics folder doesn't exist." });
+	}
+});
+
 app.delete("/music/:id", (req, res) => {
 	const { id } = req.params;
 	let includesHidden = isCorrectCode(req);
@@ -279,12 +303,12 @@ function searchSong(songs, query, searchType) {
  */
 function isCorrectCode(request, slowsDown = false) {
 	let sentCode = request.get("Authorization");
-	let matches = sentCode == accessCode
+	let matches = sentCode == accessCode;
 
 	if (slowsDown && !matches) {
 		setTimeout(() => {
 			return matches;
-		}, 1.75*1000)
+		}, 1.75 * 1000);
 	} else {
 		return matches;
 	}
