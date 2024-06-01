@@ -10,5 +10,8 @@ store/token
 *.m4a
 lastCover.png
 
+# lyrics
+/lyrics/*.json
+
 # exports
 ArtisticlyServer.zip
