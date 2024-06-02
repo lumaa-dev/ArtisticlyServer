@@ -1,7 +1,7 @@
 {
 	"accessCode": "Artisticly",
 	"name": "LumaaDev",
-	"configured": false,
+	"configured": true,
 
 	"version": {
 		"server": 10,
