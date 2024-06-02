@@ -162,6 +162,7 @@ app.get("/music/:id", (req, res) => {
 	}
 });
 
+// not recommended to use yet
 app.get("/lyrics/:id", (req, res) => {
 	const { id } = req.params;
 	// let includesHidden = isCorrectCode(req);
