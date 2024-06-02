@@ -108,7 +108,7 @@ class SpotifyDL {
 		await sdl.downloadTrack(url).then(async (data) => {
 			const spotifyMetadata = data;
 			let coverUrl = spotifyMetadata["imageUrl"];
-			let albumName = spotifyMetadata["album"]["name"]
+			let albumName = spotifyMetadata["album"]["name"];
 			await downloadImage(coverUrl, `lastCover.png`);
 
 			setFfmpegPath(ffmpegPath);
@@ -136,7 +136,7 @@ class SpotifyDL {
 				return filename;
 			});
 
-			newFile = filename
+			newFile = filename;
 		});
 
 		return newFile;
@@ -357,8 +357,16 @@ function writeAudioIndex(buffer, hidden = false, i = 1, onCreation) {
 	let ids = songs.map((el) => {
 		return el.split(/-+/g)[0];
 	});
-	let newId = ids.length + i;
-	let filename = `${newId}-${hidden ? 0 : 1}-spotifydl.mp3`;
+	var newId = -1
+
+	let missings = findMissing(ids)
+	if (missings.length > 0) {
+		newId = missings[0];
+	} else {
+		newId = ids.length + i;
+	}
+
+	let = filename = `${newId}-${hidden ? 0 : 1}-spotifydl.mp3`;
 
 	audioContext.decodeAudioData(buffer, (audioBuffer) => {
 		convertAudioBufferToMp3(audioBuffer, `./songs/${filename}`)
@@ -395,6 +403,25 @@ async function downloadImage(url, imagePath) {
 			}
 		});
 	});
+}
+
+/**
+ * Find the missing number(s) of an array of integers
+ * @param {string[]} listIndexes The array of integers
+ * @returns {number[]} Returns the missing indexes sorted by smallest to biggest
+ */
+function findMissing(listIndexes = []) {
+	var missing = [];
+	console.log(listIndexes);
+	for (let i = 1; i < listIndexes.length; i++) {
+		if (!listIndexes.includes(`${i}`)) {
+			console.log(`index ${i} added`);
+			missing.push(i);
+		}
+	}
+
+	missing.sort((a, b) => a - b);
+	return missing
 }
 
 module.exports.api = SpotifyAPI;
