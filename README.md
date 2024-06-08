@@ -1,5 +1,5 @@
 # Artisticly Server
-This is the server that allows the app [Artisticly](https://github.com/lumaa-dev/ArtisticlyClient) to run properly.
+This is the server that allows the [Artisticly App](https://github.com/lumaa-dev/ArtisticlyClient) and [web page](https://github.com/lumaa-dev/ArtisticlyWeb) to run properly.
 
 ## About song files
 All songs must use the `.mp3`, `.wav` or `.m4a` format.
